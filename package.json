@@ -1,0 +1,29 @@
+{
+  "name": "products",
+  "version": "1.0.0",
+  "description": "A simple CAP project.",
+  "repository": "<Add your repository here>",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@sap/cds": "^7",
+    "@sap/hana-client": "^2.20.23",
+    "express": "^4"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^1",
+    "@sap/eslint-plugin-cds": "^3",
+    "@sap/ux-specification": "^1.120.11",
+    "eslint": "^9"
+  },
+  "scripts": {
+    "start": "cds-serve",
+    "watch-products": "cds watch --open products/webapp/index.html?sap-ui-xx-viewCache=false",
+    "watch-buys": "cds watch --open buys/webapp/index.html?sap-ui-xx-viewCache=false"
+  },
+  "sapux": [
+    "app/products",
+    "app/buys",
+    "app/buys"
+  ]
+}
