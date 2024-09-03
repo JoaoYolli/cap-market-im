@@ -51,6 +51,12 @@ annotate service.Buys.products with @(
         },
         {
             $Type : 'UI.DataField',
+            Value : up_.products.Name,
+            Label : 'Name',
+            ![@UI.Hidden],
+        },
+        {
+            $Type : 'UI.DataField',
             Value : quant,
             Label : 'quant',
         },]
@@ -68,16 +74,17 @@ annotate service.Buys.products with {
             ],
             Label : 'Producto',
         },
-        Common.ValueListWithFixedValues : true
+        Common.ValueListWithFixedValues : true,
+        Common.Text : Name,
 )};
-annotate service.Products with {
-    name @Common.Text : descr
-};
 annotate service.Buys.products with {
     ID @Common.FieldControl : #Mandatory
 };
 annotate service.Products with {
-    buyid @Common.Text : name
+    buyid @Common.Text : {
+        $value : name,
+        ![@UI.TextArrangement] : #TextOnly
+    }
 };
 annotate service.Buys with @(
     UI.SelectionPresentationVariant #tableView : {
@@ -122,3 +129,19 @@ annotate service.Buys with @(
 annotate service.Buys with {
     totalPrice @Common.FieldControl : #ReadOnly
 };
+annotate service.Buys.products with {
+    Name @(Common.ValueList : {
+            $Type : 'Common.ValueListType',
+            CollectionPath : 'Products',
+            Parameters : [
+                {
+                    $Type : 'Common.ValueListParameterInOut',
+                    LocalDataProperty : Name,
+                    ValueListProperty : 'name',
+                },
+            ],
+            Label : 'Product',
+        },
+        Common.ValueListWithFixedValues : true
+)};
+

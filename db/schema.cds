@@ -17,6 +17,7 @@ entity buys {
         products   : Composition of many {
         key UUID : UUID;
             ID : String default ' ';
+            Name: String default ' ';
             quant : Decimal;
         };
         totalPrice : Decimal;

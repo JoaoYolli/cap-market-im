@@ -27,9 +27,9 @@ class Process extends cds.ApplicationService {
         this.before("POST", "Buys", (req) => createBuys(req));
         // this.after("POST", "Buys", (req) => readBuys());
 
-        this.before("READ", "Buys",  async (req) =>  await readBuys(req));
+        this.before("READ", "Buys", (req) => readBuys(req));
 
-        // readBuys();
+        // readBuys(req);
 
         return super.init()
     }
@@ -37,7 +37,7 @@ class Process extends cds.ApplicationService {
 
 function getConnectionOptions() {
     return {
-        serverNode: '7558cc97-4089-4e10-b653-9f1c68c833da.hana.trial-us10.hanacloud.ondemand.com:443', // Cambia por el host y puerto adecuados
+        serverNode: '67193050-b34f-45d3-aece-e9b8e40ba853.hana.trial-us10.hanacloud.ondemand.com:443', // Cambia por el host y puerto adecuados
         encrypt: 'true',
         validateCertificate: 'false',
         uid: 'DBADMIN', // Cambia por tu usuario
@@ -63,7 +63,7 @@ function handleExecError(connection, error) {
 async function printProducts(result) {
     let products = [];
 
-    
+
     result.forEach(product => {
         let item = {};
         item["ID"] = product.PR_ID;
@@ -83,15 +83,15 @@ async function printProducts(result) {
     console.log("Despues insert")
 }
 
-async function readProducts(){
-
+async function readProducts() {
+return new Promise((resolve)=>{
     const connection = hanaClient.createConnection();
 
     connection.connect(getConnectionOptions(), (err) => {
         handleConnectionError(err);
-        
+
         console.log('Connection to HANA successful!');
-    
+
         const sql = 'SELECT * FROM DBADMIN.ZPRODUCTS';
 
         connection.exec(sql, (err, result) => {
@@ -101,9 +101,33 @@ async function readProducts(){
         });
     });
 
+    resolve()
+})
+
 }
 
-function createProduct(req){
+function readProduct(PR_ID) {
+    return new Promise((resolve) => {
+        const connection = hanaClient.createConnection();
+
+        connection.connect(getConnectionOptions(), (err) => {
+            handleConnectionError(err);
+
+            console.log('Connection to HANA successful!');
+
+            const sql = `SELECT * FROM DBADMIN.ZPRODUCTS WHERE PR_ID = '${PR_ID}';`;
+            console.log(sql)
+
+            connection.exec(sql, (err, result) => {
+                handleExecError(connection, err)
+                resolve(result)
+                connection.disconnect();
+            });
+        });
+    })
+}
+
+function createProduct(req) {
 
     executeSQLStatement(`INSERT INTO DBADMIN.ZPRODUCTS VALUES('${req.data["ID"]}', '${req.data["name"]}', '${req.data["descr"]}', ${req.data["price"]}, '${req.data["UM"]}', 0)`)
 
@@ -124,26 +148,20 @@ async function deleteProducts(req) {
 }
 
 async function printBuys(result) {
-    new Promise(async (resolve) => {
-        // console.log("dentro1")
+    return new Promise(async (resolve) => {
         let buys = [];
-        
+
         result.forEach(async buy => {
             let item = {};
-            // console.log(buy.ID)
             item["ID"] = buy.ID;
             item["date"] = buy.DATE;
             item["total_price"] = buy.TOTAL_PRICE;
-            item["products"] = [{"Nada1":1},{"Nada2":2}]
-            // console.log("dentro bucle 1")
-            // item["products"] = await obtainItems(buy.ID);
-            // console.log("dentro bucle 2")
+            item["products"] = [{ "Nada1": 1 }, { "Nada2": 2 }]
+            // item["products"] = await obtainItems(buy.ID)
             buys.push(item);
-            // console.log(`${id} - ${name} - ${description} - ${price} - ${unitMeasure}`);
         });
         console.log(buys)
         await DELETE.from("com.shop.buys")
-        // console.log("dentro2")
         await INSERT.into("com.shop.buys").entries(buys)
 
         resolve()
@@ -151,111 +169,94 @@ async function printBuys(result) {
     })
 }
 
-async function readBuys(req){
-    console.log(req.data)
-    if (req.data["ID"] !== undefined){
-        
-        let items = []
-
-        items = await obtainItems(req.data["ID"]);
-        console.log("ITEMS", items)
-
-        // let q3 = UPDATE `com.shop.buys` .where `ID=${req.data["ID"]}` .with `products=${items}`
-        await UPDATE('com.shop.buys',req.data["ID"]).with({ products: items })
-        // let result = await cds.db.run (q3)
-        // console.log("RESULTADO:", result)
-
-        // console.log(items)
-
-        let q1 = SELECT.from('com.shop.buys').where({ID:req.data["ID"]})
-        let entradas = await cds.db.run (q1)
-        console.log(entradas)
-
-        // entradas.forEach(async entrada =>{
-
-        //     console.log("ANTESSSS ITEMS",entrada["ID"])
-        //     entrada["products"] = items
-        //     console.log("DESPUES PRODUCTOPSSSSSSS",entrada)
-
-            
+async function readBuys(req) {
+    return new Promise(async (resolve)=>{
+        if (req.data["ID"] !== undefined) {
+                let items = []
     
-        //     // await INSERT.into("com.shop.buys").entries()
-        // })
-
-    }else{
-        return new Promise((resolve) => {
+                items = await obtainItems(req.data["ID"]);
+                console.log("ITEMS", items)
     
-            const connection = hanaClient.createConnection();
+                await UPDATE('com.shop.buys', req.data["ID"]).with({ products: items })
     
-            connection.connect(getConnectionOptions(), (err) => {
-                handleConnectionError(err);
-                
-                // console.log('Connection to HANA successful!');
-            
-                const sql = 'SELECT * FROM DBADMIN.ZBUYS';
+                let q1 = SELECT.from('com.shop.buys').where({ ID: req.data["ID"] })
+                let entradas = await cds.db.run(q1)
+        } else {
+                const connection = hanaClient.createConnection();
     
-                connection.exec(sql, async (err, result) => {
-                    handleExecError(connection, err)
-                    // console.log("1")
-                    await printBuys(result)
-                    // console.log("2")
-                    connection.disconnect();
-                    resolve()
-                    // console.log("3")
+                connection.connect(getConnectionOptions(), (err) => {
+                    handleConnectionError(err);
+    
+                    const sql = 'SELECT * FROM DBADMIN.ZBUYS';
+    
+                    connection.exec(sql, async (err, result) => {
+                        handleExecError(connection, err)
+                        await printBuys(result)
+                        connection.disconnect();
+                    });
                 });
-            });
-        });
-    }
+        }
+        resolve()
+    })
 }
 
-async function obtainItems(buyID){
+async function obtainItems(buyID) {
     return new Promise(async (resolve) => {
         let products = [];
         let items = await executeSQLStatement(`SELECT * FROM DBADMIN.ZB_P WHERE B_ID = '${buyID}'`);
-        items.forEach(item =>{
+        items.forEach(item => {
             let product = {}
             product["UUID"] = item.ID;
             product["ID"] = item.PR_ID;
             product["quant"] = item.QUANT;
             products.push(product);
         });
-        console.log("PRODUCTSSSSSSSSSSSSSSS",products);
+        console.log("PRODUCTSSSSSSSSSSSSSSS", products);
         resolve(products);
         // console.log("despues resolve products")
     })
 }
 
-async function createBuys(req){
+async function createBuys(req) {
     // console.log("POST de compras", req.data)
 
-        let currentDate = new Date().toJSON().slice(0, 10);
+    let currentDate = new Date().toJSON().slice(0, 10);
 
-        await executeSQLStatement(`INSERT INTO DBADMIN.ZBUYS VALUES('${req.data["ID"]}', '${currentDate}', 1)`)
+    await executeSQLStatement(`INSERT INTO DBADMIN.ZBUYS VALUES('${req.data["ID"]}', '${currentDate}', 1)`)
 
-        req.data["products"].forEach(products =>{
-            // const stock = executeSQLStatement(`SELECT STOCK FROM DBADMIN.ZPRODUCTS WHERE PR_ID = '${products.ID}'`)
-            // console.log('OBTENER STOCK ',stock)
-            // const sql2 = `UPDATE ZPRODUCTS SET STOCK = ${stock + products.quant} WHERE PR_ID = '${products.ID}';`
+    req.data["products"].forEach(async products => {
+        // const stock = executeSQLStatement(`SELECT STOCK FROM DBADMIN.ZPRODUCTS WHERE PR_ID = '${products.ID}'`)
+        // console.log('OBTENER STOCK ',stock)
+        // const sql2 = `UPDATE ZPRODUCTS SET STOCK = ${stock + products.quant} WHERE PR_ID = '${products.ID}';`
 
-            executeSQLStatement(`INSERT INTO DBADMIN.ZB_P VALUES('${products.UUID}', '${products.ID}', '${req.data["ID"]}', ${products.quant})`);
-            // executeSQLStatement(sql2)
-        })
+        executeSQLStatement(`INSERT INTO DBADMIN.ZB_P VALUES('${products.UUID}', '${products.ID}', '${req.data["ID"]}', ${products.quant})`);
 
-        
-    
+        let result = await readProduct(products.ID);
+        let stock = 0
+
+        result.forEach(product => {
+            stock = product.STOCK;
+        });
+
+        executeSQLStatement(`UPDATE ZPRODUCTS SET STOCK = ${stock + products.quant} WHERE PR_ID = '${products.ID}';`)
+        // executeSQLStatement(sql2)
+    })
+
+
+
 }
 
-function executeSQLStatement(Statement){
+function executeSQLStatement(Statement) {
     return new Promise((resolve) => {
         const connection = hanaClient.createConnection();
         const sql = Statement;
         connection.connect(getConnectionOptions(), (err) => {
             handleConnectionError(err);
-    
+
             console.log(sql)
-            
+
             // console.log('Connection to HANA successful!');
-    
+
             connection.exec(sql, (err, result) => {
                 handleExecError(connection, err)
                 // printProducts(result)
